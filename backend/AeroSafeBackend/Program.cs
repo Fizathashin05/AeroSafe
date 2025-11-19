@@ -5,6 +5,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Enable Controllers
+builder.Services.AddControllers().AddNewtonsoftJson();
+
 builder.Services.AddControllers();
 
 // Enable CORS for frontend
