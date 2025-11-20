@@ -38,6 +38,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Enable Controllers
+builder.Services.AddControllers().AddNewtonsoftJson();
+
 builder.Services.AddControllers();
 
 // Database Configuration
