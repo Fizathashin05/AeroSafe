@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>20ef5de7-f58f-4480-a440-5f42c968e535</UserSecretsId>
   </PropertyGroup>
  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />

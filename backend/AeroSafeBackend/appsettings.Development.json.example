@@ -1,9 +1,9 @@
 {
   "ConnectionStrings": {
-    "DefaultConnection": ""
+    "DefaultConnection": "Server=localhost;Database=aerosafe;User=root;Password=YOUR_PASSWORD_HERE;Port=3306;"
   },
   "Jwt": {
-    "Key": "",
+    "Key": "YourSuperSecretKeyForJWTTokenGenerationMustBeAtLeast32CharactersLong!",
     "Issuer": "AeroSafe",
     "Audience": "AeroSafe",
     "ExpiryMinutes": "1440"
@@ -16,3 +16,4 @@
   },
   "AllowedHosts": "*"
 }
+

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck } from 'lucide-react'
+import { ShieldCheck, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import { authAPI, saveAuthData } from '../services/api'
 
@@ -12,8 +12,13 @@ const AdminSignup = () => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const isValidEmail = (e) => /^\S+@\S+\.\S+$/.test(e)
+  const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+  const nameRegex = /^[A-Za-z\s]+$/
+  const adminIdRegex = /^[A-Za-z0-9-]+$/
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -27,7 +32,13 @@ const AdminSignup = () => {
       return
     }
 
-    if (!isValidEmail(email)) {
+    if (!nameRegex.test(name.trim())) {
+      setError('Name must contain alphabetic characters only')
+      setLoading(false)
+      return
+    }
+
+    if (!emailRegex.test(email)) {
       setError('Please enter a valid email address')
       setLoading(false)
       return
@@ -39,8 +50,14 @@ const AdminSignup = () => {
       return
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (!adminIdRegex.test(adminId.trim())) {
+      setError('Admin ID can only include letters, numbers, and dashes')
+      setLoading(false)
+      return
+    }
+
+    if (!passwordRegex.test(password)) {
+      setError('Password must be 8+ chars and include uppercase, lowercase, number, and special character')
       setLoading(false)
       return
     }
@@ -106,31 +123,51 @@ const AdminSignup = () => {
             <input id="admin-id" name="adminId" type="text" placeholder="AS-ADM-001" required value={adminId} onChange={(e) => setAdminId(e.target.value)} />
           </div>
 
-          <div className="form-field">
+          <div className="form-field password-field">
             <label htmlFor="admin-password">Password</label>
             <input
               id="admin-password"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Enter password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+            <button
+              type="button"
+              className="password-toggle"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
-          <div className="form-field">
+          <div className="form-field password-field">
             <label htmlFor="admin-confirm-password">Confirm Password</label>
             <input
               id="admin-confirm-password"
               name="confirmPassword"
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               placeholder="Re-enter password"
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
+            <button
+              type="button"
+              className="password-toggle"
+              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+            >
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
+
+          <p className="field-hint">
+            Password must be at least 8 characters and include uppercase, lowercase, number, and special character.
+          </p>
 
           {error && <p style={{ color: 'crimson', fontSize: '0.9rem', marginTop: '0.5rem' }}>{error}</p>}
 

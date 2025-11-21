@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ShieldCheck, Key, User } from 'lucide-react'
+import { ShieldCheck, Key, User, Eye, EyeOff } from 'lucide-react'
 import { useEffect } from 'react'
+import { authAPI } from '../services/api'
 
 const AdminLogin = () => {
   const navigate = useNavigate()
@@ -12,6 +13,8 @@ const AdminLogin = () => {
   const location = useLocation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
 
   useEffect(() => {
     const s = location?.state || {}
@@ -26,48 +29,33 @@ const AdminLogin = () => {
     setError('')
     setLoading(true)
 
-    const isValidEmail = (e) => /^\S+@\S+\.\S+$/.test(e)
-    if (!isValidEmail(email)) {
+    if (!emailRegex.test(email)) {
       setError('Please enter a valid email address')
       setLoading(false)
       return
     }
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role: 'Admin', adminId })
-      })
+      const response = await authAPI.login(email, password, 'Admin')
 
-      const body = await res.json()
-
-      if (!res.ok) {
-        setError(body?.message || 'Login failed')
-        setLoading(false)
-        return
-      }
-
-      // Save token and user info (respect 'remember me')
-      if (body?.token) {
-        if (remember) {
-          localStorage.setItem('token', body.token)
-        } else {
-          sessionStorage.setItem('token', body.token)
+      if (response.success && response.token) {
+        const storage = remember ? localStorage : sessionStorage
+        storage.setItem('token', response.token)
+        if (response.user) {
+          storage.setItem('user', JSON.stringify(response.user))
         }
-      }
-      if (body?.user) {
-        if (remember) {
-          localStorage.setItem('user', JSON.stringify(body.user))
-        } else {
-          sessionStorage.setItem('user', JSON.stringify(body.user))
-        }
-      }
 
-      // Navigate to landing or admin dashboard
-      navigate('/')
+        // Clear from other storage to avoid stale state
+        const otherStorage = remember ? sessionStorage : localStorage
+        otherStorage.removeItem('token')
+        otherStorage.removeItem('user')
+
+        navigate('/verify')
+      } else {
+        setError(response.message || 'Login failed')
+      }
     } catch (err) {
-      setError('Network error')
+      setError(err.message || 'Network error. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -109,17 +97,25 @@ const AdminLogin = () => {
             />
           </div>
 
-          <div className="form-field">
+          <div className="form-field password-field">
             <label htmlFor="admin-password">Password <Key size={14} style={{ verticalAlign: 'middle', marginLeft: '6px' }} /></label>
             <input
               id="admin-password"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Enter password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+            <button
+              type="button"
+              className="password-toggle"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

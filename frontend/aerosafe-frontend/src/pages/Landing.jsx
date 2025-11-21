@@ -3,6 +3,7 @@ import logo from '../logo.png'
 
 const Landing = () => {
   const navigate = useNavigate()
+  const handleNavigate = (path) => navigate(path)
 
   return (
     <main className="landing-page">
@@ -46,4 +47,3 @@ const Landing = () => {
 }
 
 export default Landing
-

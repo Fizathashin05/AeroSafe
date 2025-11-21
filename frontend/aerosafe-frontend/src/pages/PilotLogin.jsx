@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Plane, Key, User } from 'lucide-react'
+import { Plane, Key, User, Eye, EyeOff } from 'lucide-react'
+import { authAPI } from '../services/api'
 
 const PilotLogin = () => {
   const navigate = useNavigate()
@@ -11,6 +12,8 @@ const PilotLogin = () => {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
 
   useEffect(() => {
     const s = location?.state || {}
@@ -25,40 +28,31 @@ const PilotLogin = () => {
     setError('')
     setLoading(true)
 
-    const isValidEmail = (e) => /^\S+@\S+\.\S+$/.test(e)
-    if (!isValidEmail(email)) {
+    if (!emailRegex.test(email)) {
       setError('Please enter a valid email address')
       setLoading(false)
       return
     }
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role: 'Pilot', pilotId })
-      })
+      const response = await authAPI.login(email, password, 'Pilot')
 
-      const body = await res.json()
+      if (response.success && response.token) {
+        const storage = remember ? localStorage : sessionStorage
+        storage.setItem('token', response.token)
+        if (response.user) {
+          storage.setItem('user', JSON.stringify(response.user))
+        }
+        const otherStorage = remember ? sessionStorage : localStorage
+        otherStorage.removeItem('token')
+        otherStorage.removeItem('user')
 
-      if (!res.ok) {
-        setError(body?.message || 'Login failed')
-        setLoading(false)
-        return
+        navigate('/verify')
+      } else {
+        setError(response.message || 'Login failed')
       }
-
-      if (body?.token) {
-        if (remember) localStorage.setItem('token', body.token)
-        else sessionStorage.setItem('token', body.token)
-      }
-      if (body?.user) {
-        if (remember) localStorage.setItem('user', JSON.stringify(body.user))
-        else sessionStorage.setItem('user', JSON.stringify(body.user))
-      }
-
-      navigate('/')
     } catch (err) {
-      setError('Network error')
+      setError(err.message || 'Network error. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -100,17 +94,25 @@ const PilotLogin = () => {
             />
           </div>
 
-          <div className="form-field">
+          <div className="form-field password-field">
             <label htmlFor="pilot-password">Password <Key size={14} style={{ verticalAlign: 'middle', marginLeft: '6px' }} /></label>
             <input
               id="pilot-password"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="Enter password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+            <button
+              type="button"
+              className="password-toggle"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
