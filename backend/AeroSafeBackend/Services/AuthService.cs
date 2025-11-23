@@ -140,11 +140,11 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
-        if (request.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        // Try to find an admin with the provided email first
+        var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Email == request.Email);
+        if (admin != null)
         {
-            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Email == request.Email);
-            
-            if (admin == null || !BCrypt.Net.BCrypt.Verify(request.Password, admin.PasswordHash))
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, admin.PasswordHash))
             {
                 return new AuthResponse
                 {
@@ -154,6 +154,10 @@ public class AuthService : IAuthService
             }
 
             var token = GenerateJwtToken(admin.Id, admin.Email, "Admin", admin.AdminUid, admin.FullName);
+            // update last active timestamp
+            admin.UpdatedAt = DateTime.UtcNow;
+            _context.Admins.Update(admin);
+            await _context.SaveChangesAsync();
 
             return new AuthResponse
             {
@@ -170,11 +174,12 @@ public class AuthService : IAuthService
                 }
             };
         }
-        else if (request.Role.Equals("Pilot", StringComparison.OrdinalIgnoreCase))
+
+        // If not an admin, try pilot
+        var pilot = await _context.Pilots.FirstOrDefaultAsync(p => p.Email == request.Email);
+        if (pilot != null)
         {
-            var pilot = await _context.Pilots.FirstOrDefaultAsync(p => p.Email == request.Email);
-            
-            if (pilot == null || !BCrypt.Net.BCrypt.Verify(request.Password, pilot.PasswordHash))
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, pilot.PasswordHash))
             {
                 return new AuthResponse
                 {
@@ -184,6 +189,10 @@ public class AuthService : IAuthService
             }
 
             var token = GenerateJwtToken(pilot.Id, pilot.Email, "Pilot", pilot.PilotUid, pilot.FullName);
+            // update last active timestamp
+            pilot.UpdatedAt = DateTime.UtcNow;
+            _context.Pilots.Update(pilot);
+            await _context.SaveChangesAsync();
 
             return new AuthResponse
             {
@@ -201,10 +210,11 @@ public class AuthService : IAuthService
             };
         }
 
+        // No matching user found
         return new AuthResponse
         {
             Success = false,
-            Message = "Invalid role"
+            Message = "Invalid email or password"
         };
     }
 

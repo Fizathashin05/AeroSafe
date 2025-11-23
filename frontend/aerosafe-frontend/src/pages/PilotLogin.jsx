@@ -6,22 +6,11 @@ import { authAPI } from '../services/api'
 const PilotLogin = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
-  const [pilotId, setPilotId] = useState('')
-  const [remember, setRemember] = useState(true)
-  const location = useLocation()
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
-
-  useEffect(() => {
-    const s = location?.state || {}
-    if (s?.demoEmail) setEmail(s.demoEmail)
-    if (s?.demoPassword) setPassword(s.demoPassword)
-    if (s?.pilotId) setPilotId(s.pilotId)
-    if (typeof s?.remember !== 'undefined') setRemember(s.remember)
-  }, [location])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -64,7 +53,7 @@ const PilotLogin = () => {
         <div className="signup-icon pilot">
           <Plane aria-hidden="true" />
         </div>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', justifyContent: 'center' }}>
           <User size={20} /> Pilot Login
         </h2>
 
@@ -114,15 +103,7 @@ const PilotLogin = () => {
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <input
-              id="remember"
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            <label htmlFor="remember" style={{ fontSize: '0.9rem' }}>Remember me</label>
             <a href="#" style={{ marginLeft: 'auto', fontSize: '0.9rem' }} onClick={(e) => e.preventDefault()}>
               Forgot password?
             </a>

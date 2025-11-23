@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Landing from './pages/Landing'
 import AdminSignup from './pages/AdminSignup'
 import PilotSignup from './pages/PilotSignup'
@@ -18,6 +18,11 @@ function App() {
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/pilot-login" element={<PilotLogin />} />
       <Route path="/verify" element={<AuthVerify />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/pilot/dashboard" element={<PilotDashboard />} />
+        {/* legacy/alternate paths — redirect to canonical routes */}
+        <Route path="/admin-dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/pilot-dashboard" element={<Navigate to="/pilot/dashboard" replace />} />
     </Routes>
   )
 }

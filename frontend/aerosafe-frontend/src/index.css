@@ -1,3 +1,11 @@
+/* src/index.css */
+
+/* Tailwind directives (required if you're using Tailwind utilities) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- your base/global styles --- */
 :root {
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   line-height: 1.5;

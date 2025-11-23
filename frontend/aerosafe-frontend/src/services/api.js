@@ -23,8 +23,25 @@ const apiRequest = async (endpoint, options = {}) => {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    // Try to parse response body for useful error information
+    const body = await response.json().catch(() => null);
+    let message = `HTTP error! status: ${response.status}`;
+
+    if (body) {
+      // ASP.NET ValidationProblemDetails typically returns 'errors' object
+      if (body.errors && typeof body.errors === 'object') {
+        // Join all error messages into one string
+        const parts = Object.values(body.errors).flat();
+        message = parts.join(' | ');
+      } else if (body.message) {
+        message = body.message;
+      } else {
+        message = JSON.stringify(body);
+      }
+    }
+
+    console.error('API error', response.status, body);
+    throw new Error(message);
   }
 
   return response.json();
@@ -61,13 +78,12 @@ export const authAPI = {
   },
 
   // Login (for both Admin and Pilot)
-  login: async (email, password, role) => {
+  login: async (email, password) => {
     return apiRequest('/auth/login', {
       method: 'POST',
       body: JSON.stringify({
         Email: email,
         Password: password,
-        Role: role,
       }),
     });
   },

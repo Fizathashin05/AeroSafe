@@ -35,7 +35,7 @@ const Landing = () => {
             className="landing-link"
             onClick={(e) => {
               e.preventDefault()
-              handleNavigate('/login')
+              navigate('/login')
             }}
           >
             Login
