@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using AeroSafeBackend.DTOs;
 using AeroSafeBackend.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace AeroSafeBackend.Controllers;
 
@@ -81,6 +82,31 @@ public class AuthController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    [HttpGet("active")]
+    public async Task<IActionResult> Active([FromQuery] int minutes = 30)
+    {
+        // Return users (admins + pilots) whose UpdatedAt is within the last `minutes` window
+        var cutoff = DateTime.UtcNow.AddMinutes(-minutes);
+
+        // Access the DbContext via the auth service is not available here; resolve via HttpContext.RequestServices
+        var db = HttpContext.RequestServices.GetService(typeof(AeroSafeBackend.Data.AeroSafeDbContext)) as AeroSafeBackend.Data.AeroSafeDbContext;
+        if (db == null) return StatusCode(500, new { Success = false, Message = "Database unavailable" });
+
+        var admins = await db.Admins
+            .Where(a => a.UpdatedAt >= cutoff)
+            .Select(a => new { a.Id, a.AdminUid, a.FullName, a.Email, Role = "Admin", LastActive = a.UpdatedAt })
+            .ToListAsync();
+
+        var pilots = await db.Pilots
+            .Where(p => p.UpdatedAt >= cutoff)
+            .Select(p => new { p.Id, p.PilotUid, p.FullName, p.Email, Role = "Pilot", LastActive = p.UpdatedAt })
+            .ToListAsync();
+
+        var combined = admins.Cast<object>().Concat(pilots.Cast<object>()).ToList();
+
+        return Ok(new { Success = true, Users = combined });
     }
 
     [HttpGet("verify")]

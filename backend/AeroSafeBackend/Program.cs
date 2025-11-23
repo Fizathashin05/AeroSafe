@@ -8,22 +8,28 @@ using AeroSafeBackend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Force Kestrel to listen on a fixed HTTP port for local development
+// Force Kestrel to listen on a fixed port
 builder.WebHost.UseUrls("http://localhost:5121");
 
-// Add services to the container.
+// ------------------------------------------------------
+// Register Services
+// ------------------------------------------------------
+
+// Swagger + JWT UI Setup
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "AeroSafe API", Version = "v1" });
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token",
+        Description = "Enter: Bearer <your_jwt_token>",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -40,61 +46,76 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Enable Controllers
+// Controllers
 builder.Services.AddControllers().AddNewtonsoftJson();
 
-builder.Services.AddControllers();
-
+// ------------------------------------------------------
 // Database Configuration
+// ------------------------------------------------------
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<AeroSafeDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
-// JWT Authentication Configuration
-var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");
+
+// ------------------------------------------------------
+// JWT Authentication
+// ------------------------------------------------------
+var jwtKey = builder.Configuration["Jwt:Key"] 
+             ?? throw new InvalidOperationException("JWT Key not found.");
+
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AeroSafe";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AeroSafe";
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer,
-        ValidAudience = jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        ClockSkew = TimeSpan.Zero
-    };
-});
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
 builder.Services.AddAuthorization();
 
-// Register Services
-builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Enable CORS for frontend
+// ------------------------------------------------------
+// CORS
+// ------------------------------------------------------
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
+
+// ------------------------------------------------------
+// Register Your Services
+// ------------------------------------------------------
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+
+// ------------------------------------------------------
+// Build App
+// ------------------------------------------------------
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Swagger in Development
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -105,47 +126,14 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
-
-// Enable CORS
 app.UseCors("AllowFrontend");
 
-// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map Controllers (for /api/ routes)
 app.MapControllers();
 
-// Redirect root path to Swagger UI
-app.MapGet("/", () => Results.Redirect("/swagger/index.html"));
-
-// Keep weather API
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
-// No demo seeding — use real signups to create users in the database.
+// Redirect root → Swagger
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

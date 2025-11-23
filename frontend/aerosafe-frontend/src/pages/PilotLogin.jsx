@@ -1,24 +1,14 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plane, Key, User } from 'lucide-react'
+import { authAPI, saveAuthData } from '../services/api'
 
 const PilotLogin = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
-  const [pilotId, setPilotId] = useState('')
-  const [remember, setRemember] = useState(true)
-  const location = useLocation()
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    const s = location?.state || {}
-    if (s?.demoEmail) setEmail(s.demoEmail)
-    if (s?.demoPassword) setPassword(s.demoPassword)
-    if (s?.pilotId) setPilotId(s.pilotId)
-    if (typeof s?.remember !== 'undefined') setRemember(s.remember)
-  }, [location])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -33,32 +23,19 @@ const PilotLogin = () => {
     }
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role: 'Pilot', pilotId })
-      })
+      const body = await authAPI.login(email, password)
 
-      const body = await res.json()
-
-      if (!res.ok) {
+      if (body?.success && body?.token) {
+        saveAuthData(body.token, body.user)
+        const role = body.user?.role || body.user?.Role || ''
+        if (role.toLowerCase() === 'pilot') navigate('/pilot/dashboard')
+        else if (role.toLowerCase() === 'admin') navigate('/admin/dashboard')
+        else navigate('/')
+      } else {
         setError(body?.message || 'Login failed')
-        setLoading(false)
-        return
       }
-
-      if (body?.token) {
-        if (remember) localStorage.setItem('token', body.token)
-        else sessionStorage.setItem('token', body.token)
-      }
-      if (body?.user) {
-        if (remember) localStorage.setItem('user', JSON.stringify(body.user))
-        else sessionStorage.setItem('user', JSON.stringify(body.user))
-      }
-
-      navigate('/')
     } catch (err) {
-      setError('Network error')
+      setError(err.message || 'Network error')
     } finally {
       setLoading(false)
     }
@@ -70,7 +47,7 @@ const PilotLogin = () => {
         <div className="signup-icon pilot">
           <Plane aria-hidden="true" />
         </div>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', justifyContent: 'center' }}>
           <User size={20} /> Pilot Login
         </h2>
 
@@ -89,18 +66,6 @@ const PilotLogin = () => {
           </div>
 
           <div className="form-field">
-            <label htmlFor="pilot-id">Pilot ID</label>
-            <input
-              id="pilot-id"
-              name="pilotId"
-              type="text"
-              placeholder="AS-PLT-001"
-              value={pilotId}
-              onChange={(e) => setPilotId(e.target.value)}
-            />
-          </div>
-
-          <div className="form-field">
             <label htmlFor="pilot-password">Password <Key size={14} style={{ verticalAlign: 'middle', marginLeft: '6px' }} /></label>
             <input
               id="pilot-password"
@@ -112,15 +77,7 @@ const PilotLogin = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <input
-              id="remember"
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            <label htmlFor="remember" style={{ fontSize: '0.9rem' }}>Remember me</label>
             <a href="#" style={{ marginLeft: 'auto', fontSize: '0.9rem' }} onClick={(e) => e.preventDefault()}>
               Forgot password?
             </a>

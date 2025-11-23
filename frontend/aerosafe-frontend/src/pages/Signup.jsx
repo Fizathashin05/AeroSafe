@@ -101,7 +101,7 @@ export default function Signup() {
 
           <p className="text-sm text-center">
             Already have an account?{" "}
-            <a href="/login" className="text-[#3B5FCC] font-medium">
+            <a href="/Login" className="text-[#3B5FCC] font-medium">
               Login
             </a>
           </p>

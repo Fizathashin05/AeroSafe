@@ -34,11 +34,7 @@ const LoginChoice = () => {
           Don't have an account? <a href="/" className="landing-link">Signup</a>
         </p>
 
-        <div style={{ marginTop: '0.8rem', textAlign: 'center' }}>
-          <a href="#" onClick={(e) => e.preventDefault()} className="landing-link">
-            <Info style={{ verticalAlign: 'middle', marginRight: 6 }} /> Need help logging in?
-          </a>
-        </div>
+        {/* "Need help logging in?" removed per request */}
       </section>
     </main>
   )

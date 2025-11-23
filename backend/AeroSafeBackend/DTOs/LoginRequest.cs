@@ -11,8 +11,7 @@ public class LoginRequest
     [Required]
     public string Password { get; set; } = string.Empty;
 
-    [Required]
-    public string Role { get; set; } = string.Empty; // "Admin" or "Pilot"
+    // Role removed: login will attempt to match user by email across admin and pilot accounts
 }
 
 

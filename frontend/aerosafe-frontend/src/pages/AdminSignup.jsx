@@ -12,6 +12,7 @@ const AdminSignup = () => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
   const isValidEmail = (e) => /^\S+@\S+\.\S+$/.test(e)
 
@@ -62,10 +63,13 @@ const AdminSignup = () => {
 
       if (response.success && response.token) {
         saveAuthData(response.token, response.user)
-        // Navigate to verification page to test authentication
-        navigate('/verify')
+        // Navigate to admin dashboard after signup
+        navigate('/admin/dashboard')
       } else {
         setError(response.message || 'Signup failed')
+        if (response?.message && response.message.toLowerCase().includes('email already')) {
+          setShowLoginPrompt(true)
+        }
       }
     } catch (err) {
       setError(err.message || 'Network error. Please try again.')
@@ -152,6 +156,19 @@ const AdminSignup = () => {
             Login
           </a>
         </p>
+
+        {showLoginPrompt && (
+          <div style={{ marginTop: '0.6rem', textAlign: 'center' }}>
+            <p style={{ margin: 0, color: '#0f172a' }}>That email is already registered.</p>
+            <button
+              className="landing-button primary"
+              style={{ marginTop: '0.5rem' }}
+              onClick={() => navigate('/admin-login', { state: { demoEmail: email } })}
+            >
+              Go to Login
+            </button>
+          </div>
+        )}
 
         <div className="toggle-wrapper">
           <button

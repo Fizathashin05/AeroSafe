@@ -1,25 +1,14 @@
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, Key, User } from 'lucide-react'
-import { useEffect } from 'react'
+import { authAPI, saveAuthData } from '../services/api'
 
 const AdminLogin = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
-  const [adminId, setAdminId] = useState('')
   const [password, setPassword] = useState('')
-  const [remember, setRemember] = useState(true)
-  const location = useLocation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    const s = location?.state || {}
-    if (s?.demoEmail) setEmail(s.demoEmail)
-    if (s?.demoPassword) setPassword(s.demoPassword)
-    if (s?.adminId) setAdminId(s.adminId)
-    if (typeof s?.remember !== 'undefined') setRemember(s.remember)
-  }, [location])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -34,40 +23,19 @@ const AdminLogin = () => {
     }
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role: 'Admin', adminId })
-      })
+      const body = await authAPI.login(email, password)
 
-      const body = await res.json()
-
-      if (!res.ok) {
+      if (body?.success && body?.token) {
+        saveAuthData(body.token, body.user)
+        const role = body.user?.role || body.user?.Role || ''
+        if (role.toLowerCase() === 'admin') navigate('/admin/dashboard')
+        else if (role.toLowerCase() === 'pilot') navigate('/pilot/dashboard')
+        else navigate('/')
+      } else {
         setError(body?.message || 'Login failed')
-        setLoading(false)
-        return
       }
-
-      // Save token and user info (respect 'remember me')
-      if (body?.token) {
-        if (remember) {
-          localStorage.setItem('token', body.token)
-        } else {
-          sessionStorage.setItem('token', body.token)
-        }
-      }
-      if (body?.user) {
-        if (remember) {
-          localStorage.setItem('user', JSON.stringify(body.user))
-        } else {
-          sessionStorage.setItem('user', JSON.stringify(body.user))
-        }
-      }
-
-      // Navigate to landing or admin dashboard
-      navigate('/')
     } catch (err) {
-      setError('Network error')
+      setError(err.message || 'Network error')
     } finally {
       setLoading(false)
     }
@@ -79,7 +47,7 @@ const AdminLogin = () => {
         <div className="signup-icon">
           <ShieldCheck aria-hidden="true" />
         </div>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', justifyContent: 'center' }}>
           <User size={20} /> Admin Login
         </h2>
 
@@ -98,18 +66,6 @@ const AdminLogin = () => {
           </div>
 
           <div className="form-field">
-            <label htmlFor="admin-id">Admin ID</label>
-            <input
-              id="admin-id"
-              name="adminId"
-              type="text"
-              placeholder="AS-ADM-001"
-              value={adminId}
-              onChange={(e) => setAdminId(e.target.value)}
-            />
-          </div>
-
-          <div className="form-field">
             <label htmlFor="admin-password">Password <Key size={14} style={{ verticalAlign: 'middle', marginLeft: '6px' }} /></label>
             <input
               id="admin-password"
@@ -121,15 +77,7 @@ const AdminLogin = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <input
-              id="remember"
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            <label htmlFor="remember" style={{ fontSize: '0.9rem' }}>Remember me</label>
             <a href="#" style={{ marginLeft: 'auto', fontSize: '0.9rem' }} onClick={(e) => e.preventDefault()}>
               Forgot password?
             </a>
